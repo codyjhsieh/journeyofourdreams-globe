@@ -59,7 +59,7 @@
 
   /* ---- top bar ---- */
   .topbar{position:fixed;z-index:30;top:calc(14px + var(--safe-t));left:calc(14px + var(--safe-l));
-    right:calc(14px + var(--safe-r));display:flex;gap:10px;align-items:flex-start;justify-content:space-between;
+    right:calc(14px + var(--safe-r));display:flex;gap:10px;align-items:flex-start;justify-content:flex-end;
     pointer-events:none}
   .topbar>*{pointer-events:auto}
   .chip{padding:11px 16px;max-width:min(70vw,440px)}
@@ -185,10 +185,6 @@
 </div>
 
 <div class="topbar">
-  <div class="chip glass">
-    <h1>🌍 Journey of Our Dreams</h1>
-    <p><span id="cCount">—</span> places · <a href="https://www.journeyofourdreams.com/blog" target="_blank" rel="noopener">visit the blog ↗</a></p>
-  </div>
   <div class="stats">
     <div class="stat glass"><b id="sPosts">—</b><span>Posts</span></div>
     <div class="stat glass"><b id="sCountries">—</b><span>Countries</span></div>
@@ -239,7 +235,6 @@ async function boot(){
   LOCATIONS = locs;
   $('sPosts').textContent = meta.post_count;
   $('sCountries').textContent = meta.country_count;
-  $('cCount').textContent = locs.length;
   buildLegend(meta.years);
 
   setMsg('Rendering the globe…');
