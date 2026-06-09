@@ -178,6 +178,47 @@ function countryFill(f, visited){
   return visited ? col : mixWhite(col, 0.30);   // unvisited softened toward white => visited gently pop
 }
 
+// Bake the soft-pastel frosted political map to an equirectangular texture (drawn ONCE).
+// Longitudes are unwrapped for continuity and each polygon is drawn at x, x-W, x+W so
+// shapes crossing the antimeridian (Russia, Fiji, …) wrap cleanly instead of smearing.
+function buildGlobeTexture(geo, isV){
+  const W=4096, H=2048, cv=document.createElement('canvas');
+  cv.width=W; cv.height=H;
+  const g=cv.getContext('2d');
+  g.fillStyle=OCEAN; g.fillRect(0,0,W,H);
+  g.lineJoin='round'; g.lineCap='round';
+  const project=(lng,lat)=>[ (lng+180)/360*W, (90-lat)/180*H ];
+  for(const f of geo.features){
+    const visited=isV(f);
+    const fill=countryFill(f, visited);
+    const polys = f.geometry.type==='MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+    for(const poly of polys){
+      const ringsPx = poly.map(ring=>{
+        let prev=null, pts=[];
+        for(let p of ring){
+          let lng=p[0];
+          if(prev!==null){ while(lng-prev>180) lng-=360; while(lng-prev<-180) lng+=360; }
+          prev=lng; pts.push(project(lng,p[1]));
+        }
+        return pts;
+      });
+      for(const dx of [0,-W,W]){
+        g.beginPath();
+        for(const pts of ringsPx){
+          g.moveTo(pts[0][0]+dx, pts[0][1]);
+          for(let i=1;i<pts.length;i++) g.lineTo(pts[i][0]+dx, pts[i][1]);
+          g.closePath();
+        }
+        g.fillStyle=fill; g.fill('evenodd');
+        g.lineWidth = visited ? 2.6 : 1.6;
+        g.strokeStyle = visited ? VISIT_STROKE : FROST_STROKE;
+        g.stroke();
+      }
+    }
+  }
+  return cv.toDataURL('image/png');
+}
+
 let world, LOCATIONS = [], VISITED = new Set();
 const $ = id => document.getElementById(id);
 const setMsg = m => { const e=$('lmsg'); if(e) e.textContent=m; };
@@ -200,20 +241,18 @@ async function boot(){
   const isV = f => VISITED.has((f.properties.ISO_A2_EH||'').toUpperCase())
                 || VISITED.has((f.properties.ISO_A2||'').toUpperCase());
 
+  // BUTTERY-SMOOTH STRATEGY: bake the entire pastel/frosted political map into ONE
+  // texture (drawn once from the same geojson) instead of ~700 live country meshes.
+  // Result: the country layer costs 1 draw call instead of hundreds -> GPU coasts at 60fps.
+  const tex = buildGlobeTexture(geo, isV);
+
   world = Globe({
       rendererConfig:{ antialias:true, alpha:true, powerPreference:'high-performance' },
       animateIn:false, controlType:'orbit'
     })(document.getElementById('globe'))
     .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
     .showAtmosphere(true).atmosphereColor('#c7dcff').atmosphereAltitude(0.18)
-    // soft multi-colored frosted political globe; visited countries gently emphasized
-    .polygonsData(geo.features)
-    .polygonCapColor(f => countryFill(f, isV(f)))
-    .polygonSideColor(() => 'rgba(255,255,255,0.10)')
-    .polygonStrokeColor(f => isV(f) ? VISIT_STROKE : FROST_STROKE)
-    .polygonAltitude(f => isV(f) ? 0.007 : 0.004)   // low => minimal side-wall geometry
-    .polygonsTransitionDuration(0)
-    .polygonLabel(f => isV(f) ? `<div class="g-tip"><b>${f.properties.ADMIN}</b></div>` : '')
+    .globeImageUrl(tex)                                   // the baked soft-pastel frosted map
     .pointsData(LOCATIONS)
     .pointLat('lat').pointLng('lng')
     .pointColor(d => colorForYear(d.year))
@@ -223,13 +262,11 @@ async function boot(){
     .onPointClick(openLocation)
     .pointsMerge(false).pointsTransitionDuration(0);
 
-  // ---- frosted glass ocean material (opaque => no alpha overdraw) ----
+  // ---- frosted glass material; baked map lives in m.map, so keep base color white ----
   const m = world.globeMaterial();
-  m.color.set(OCEAN);
-  if (m.specular) m.specular.set('#ffffff');
-  if (m.emissive) m.emissive.set('#0d1b3a');   // tiny lift so the shaded side stays soft, not muddy
-  if ('emissiveIntensity' in m) m.emissiveIntensity = 0.10;
-  m.shininess = 6; m.transparent = false; m.opacity = 1;
+  m.color && m.color.set('#ffffff');
+  if (m.specular) m.specular.set('#eaf1ff');
+  m.shininess = 5; m.transparent = false; m.opacity = 1;
 
   // ---- ambient, even lighting: lift the dark side so the globe reads frosted & soft ----
   try{
