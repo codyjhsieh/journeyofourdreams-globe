@@ -165,8 +165,18 @@
 const YEAR_COLORS = {'2018':'#34c759','2020':'#0a84ff','2021':'#5e5ce6','2022':'#ff375f',
   '2023':'#ff9f0a','2024':'#ff6b35','2025':'#00b3a4','2026':'#d4a017'};
 const colorForYear = y => YEAR_COLORS[y] || '#0a84ff';
-const OCEAN='#e6edf8', LAND='#ffffff', LAND_STROKE='rgba(120,140,175,.45)',
-      VISIT_FILL='rgba(10,132,255,.16)', VISIT_STROKE='#3a8cff';
+// soft multi-colored pastel palette for a frosted "candy" political globe (opaque => smooth)
+const PASTELS=['#cfe1fb','#c9e9d6','#d8dcf7','#ecd9ef','#f9dce6','#fde4cf','#f6ecc5',
+               '#dde9c9','#cdebe9','#e7d9f6','#d9e6f2','#fbe2c8','#d6ece0','#f0dcea'];
+const OCEAN='#eaf1fb', FROST_STROKE='rgba(255,255,255,.85)', VISIT_STROKE='rgba(255,255,255,.95)';
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return h; }
+function mixWhite(hex,t){ const n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,
+  m=(c)=>Math.round(c+(255-c)*t); return `rgb(${m(r)},${m(g)},${m(b)})`; }
+function countryFill(f, visited){
+  const key=(f.properties.ISO_A3||f.properties.ADMIN||f.properties.NAME||'');
+  const col=PASTELS[hashStr(key)%PASTELS.length];
+  return visited ? col : mixWhite(col, 0.30);   // unvisited softened toward white => visited gently pop
+}
 
 let world, LOCATIONS = [], VISITED = new Set();
 const $ = id => document.getElementById(id);
@@ -192,16 +202,16 @@ async function boot(){
 
   world = Globe({
       rendererConfig:{ antialias:true, alpha:true, powerPreference:'high-performance' },
-      animateIn:false
+      animateIn:false, controlType:'orbit'
     })(document.getElementById('globe'))
     .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
-    .showAtmosphere(true).atmosphereColor('#bcd4ff').atmosphereAltitude(0.16)
-    // clean vector world: every country drawn as land, visited highlighted
+    .showAtmosphere(true).atmosphereColor('#c7dcff').atmosphereAltitude(0.18)
+    // soft multi-colored frosted political globe; visited countries gently emphasized
     .polygonsData(geo.features)
-    .polygonCapColor(f => isV(f) ? VISIT_FILL : LAND)
-    .polygonSideColor(() => 'rgba(150,170,205,0.12)')
-    .polygonStrokeColor(f => isV(f) ? VISIT_STROKE : LAND_STROKE)
-    .polygonAltitude(f => isV(f) ? 0.012 : 0.008)
+    .polygonCapColor(f => countryFill(f, isV(f)))
+    .polygonSideColor(() => 'rgba(255,255,255,0.10)')
+    .polygonStrokeColor(f => isV(f) ? VISIT_STROKE : FROST_STROKE)
+    .polygonAltitude(f => isV(f) ? 0.007 : 0.004)   // low => minimal side-wall geometry
     .polygonsTransitionDuration(0)
     .polygonLabel(f => isV(f) ? `<div class="g-tip"><b>${f.properties.ADMIN}</b></div>` : '')
     .pointsData(LOCATIONS)
@@ -213,19 +223,35 @@ async function boot(){
     .onPointClick(openLocation)
     .pointsMerge(false).pointsTransitionDuration(0);
 
-  // ---- light "liquid glass" globe material: translucent glossy ocean ----
+  // ---- frosted glass ocean material (opaque => no alpha overdraw) ----
   const m = world.globeMaterial();
   m.color.set(OCEAN);
   if (m.specular) m.specular.set('#ffffff');
-  m.shininess = 14; m.transparent = true; m.opacity = 0.93;
+  if (m.emissive) m.emissive.set('#0d1b3a');   // tiny lift so the shaded side stays soft, not muddy
+  if ('emissiveIntensity' in m) m.emissiveIntensity = 0.10;
+  m.shininess = 6; m.transparent = false; m.opacity = 1;
 
-  // ---- guarantee a smooth 60fps spin ----
-  world.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); // no 3× retina overdraw
+  // ---- ambient, even lighting: lift the dark side so the globe reads frosted & soft ----
+  try{
+    world.lights().forEach(l=>{
+      const t=(l.type||'');
+      if (t.includes('Ambient') || t.includes('Hemisphere')) { l.intensity = 3.3; l.color && l.color.set('#ffffff'); }
+      else if (t.includes('Directional')) { l.intensity = 0.22; l.color && l.color.set('#ffffff'); }
+    });
+  }catch(e){ /* keep defaults */ }
 
+  // ---- smooth 60fps spin ----
+  // clamp pixel ratio (fill-rate is the bottleneck during rotation)
+  const dpr = window.devicePixelRatio || 1;
+  world.renderer().setPixelRatio(Math.min(dpr, dpr > 2 ? 1.5 : 2));
+
+  // globe.gl uses OrbitControls (controlType:'orbit') — damping gives the inertial Apple-like glide.
+  // globe.gl's render loop calls controls.update() every frame, so damping/autoRotate are honored.
   const c = world.controls();
-  c.autoRotate = true; c.autoRotateSpeed = 0.5;
-  c.enableDamping = true; c.dampingFactor = 0.12; c.rotateSpeed = 0.7;
+  c.enableDamping = true; c.dampingFactor = 0.085;  // low = long smooth glide
+  c.rotateSpeed = 0.62; c.zoomSpeed = 0.85; c.enablePan = false;
   c.minDistance = 130; c.maxDistance = 620;
+  c.autoRotate = true; c.autoRotateSpeed = 0.5;
   let idleTimer;
   const stopSpin = ()=>{ c.autoRotate=false; clearTimeout(idleTimer);
     idleTimer=setTimeout(()=>{ if(!$('panel').classList.contains('open')) c.autoRotate=true; }, 4000); };
