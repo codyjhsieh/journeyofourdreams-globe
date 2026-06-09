@@ -5,14 +5,17 @@ An embeddable, dynamic **3D globe** that maps **every blog post** from
 location on an accurate Earth, with highlighted country borders and clickable pins
 that link straight to each post.
 
-**Live preview (GitHub Pages):** https://codyjhsieh.github.io/journeyofourdreams-globe/
+**Live preview (GitHub Pages):** https://codyhsieh.com/journeyofourdreams-globe/
 
 ---
 
 ## What it does
 
-- **Real 3D Earth** — NASA Blue Marble texture + topology bump, rendered with
-  [globe.gl](https://github.com/vasturiano/globe.gl) (three.js / WebGL).
+- **Minimalist light "Liquid Glass" 3D globe** — a translucent glass Earth (no photo
+  texture) rendered with [globe.gl](https://github.com/vasturiano/globe.gl) (three.js / WebGL);
+  every country drawn as clean vector land. Tuned for a smooth 60fps spin (clamped pixel
+  ratio, zero geometry transitions, high-performance WebGL context). Apple Liquid Glass UI,
+  fully mobile-responsive (bottom-sheet detail panel, swipe-to-dismiss).
 - **Accurate country borders** — [Natural Earth 50m](https://www.naturalearthdata.com/)
   admin-0 polygons. Every country the blog has visited is filled & outlined in gold.
 - **Accurate pins** — each post is geocoded from its title via
@@ -39,7 +42,7 @@ that link straight to each post.
 
 ```html
 <iframe
-  src="https://codyjhsieh.github.io/journeyofourdreams-globe/embed.html"
+  src="https://codyhsieh.com/journeyofourdreams-globe/embed.html"
   title="Journey of Our Dreams Travel Globe"
   style="width:100%;height:80vh;min-height:560px;border:0;border-radius:16px;overflow:hidden;"
   loading="lazy" allow="accelerometer; gyroscope">
