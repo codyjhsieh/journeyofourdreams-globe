@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Journey of Our Dreams — Interactive Travel Globe (Preview)</title>
+<meta name="description" content="A 3D interactive globe of every blog post and location from journeyofourdreams.com."/>
+<style>
+  :root{--ink:#1d2330;--muted:#5d6679;--bg:#f6f4ef;--card:#fff;--accent:#c8922b;--line:#e7e2d8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,"Times New Roman",serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  header.site{border-bottom:1px solid var(--line);background:#fff}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+  .brand{font-size:20px;letter-spacing:.5px;font-weight:700;text-decoration:none;color:var(--ink)}
+  .brand small{display:block;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:2px;text-transform:uppercase;font-family:Helvetica,Arial,sans-serif}
+  .nav .links{display:flex;gap:20px;font-family:Helvetica,Arial,sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+  .nav .links a{color:var(--muted);text-decoration:none}
+  .nav .links a:hover{color:var(--accent)}
+  .hero{text-align:center;padding:46px 0 26px}
+  .hero h1{font-size:38px;margin:0 0 10px;font-weight:400}
+  .hero p{color:var(--muted);font-size:17px;max-width:640px;margin:0 auto;line-height:1.55}
+  .badge{display:inline-block;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:30px;padding:5px 14px;margin-bottom:18px}
+  /* the embed, exactly as it would appear inside a Squarespace code block */
+  .embed-frame{position:relative;width:100%;height:78vh;min-height:560px;border-radius:16px;overflow:hidden;
+    box-shadow:0 24px 60px rgba(20,30,60,.28);border:1px solid var(--line);background:#05070d;margin:8px 0 10px}
+  .embed-frame iframe{width:100%;height:100%;border:0;display:block}
+  .cap{text-align:center;color:var(--muted);font-size:13px;font-family:Helvetica,Arial,sans-serif;margin:6px 0 40px}
+  /* snippet */
+  section.how{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:44px 0}
+  section.how h2{font-weight:400;font-size:26px;margin:0 0 6px}
+  section.how p.lead{color:var(--muted);margin:0 0 22px}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:26px}
+  .step{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .step b{font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+  .step p{margin:8px 0 0;font-size:14px;color:var(--muted);line-height:1.5}
+  .codebox{position:relative;background:#0c1322;color:#e7ecf7;border-radius:12px;padding:18px 18px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;overflow-x:auto;line-height:1.6}
+  .codebox button{position:absolute;top:10px;right:10px;font-family:Helvetica,Arial,sans-serif;font-size:11px;
+    background:var(--accent);color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer;letter-spacing:.5px}
+  footer{padding:34px 0;text-align:center;color:var(--muted);font-size:13px;font-family:Helvetica,Arial,sans-serif}
+  footer a{color:var(--accent);text-decoration:none}
+  @media(max-width:640px){.nav .links{display:none}.hero h1{font-size:28px}}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="https://www.journeyofourdreams.com">Journey of Our Dreams<small>追梦</small></a>
+    <nav class="links">
+      <a href="https://www.journeyofourdreams.com/home">Home</a>
+      <a href="https://www.journeyofourdreams.com/blog">Blog</a>
+      <a href="#globe">Globe</a>
+      <a href="https://www.journeyofourdreams.com/about">About</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="globe">
+  <div class="badge">Preview · Embeddable Element</div>
+  <h1>Our Travels, On One Living Globe</h1>
+  <p>Every blog post mapped to its real place on an accurate 3D Earth. Spin the planet, explore a country,
+     and click any pin to open the story.</p>
+</div>
+
+<div class="wrap">
+  <div class="embed-frame">
+    <iframe src="embed.html" title="Journey of Our Dreams travel globe" loading="lazy"
+            allow="accelerometer; gyroscope" referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </div>
+  <p class="cap">↑ This is the exact element that embeds into the Squarespace blog. Drag to spin · scroll to zoom · click a pin.</p>
+</div>
+
+<section class="how">
+  <div class="wrap">
+    <h2>Add it to Squarespace</h2>
+    <p class="lead">The globe is a self-contained page hosted on GitHub Pages, dropped into any Squarespace page through a Code Block.</p>
+    <div class="steps">
+      <div class="step"><b>Step 1</b><p>Edit a page or blog post → <em>Add Block</em> → choose <em>Code</em>.</p></div>
+      <div class="step"><b>Step 2</b><p>Paste the snippet on the right. Set the block to <em>HTML</em> (not Markdown).</p></div>
+      <div class="step"><b>Step 3</b><p>Save. The globe loads inside the page; clicking a pin opens the matching blog post in a new tab.</p></div>
+    </div>
+    <div class="codebox">
+      <button onclick="copySnip()">Copy</button>
+<pre id="snip">&lt;iframe
+  src="https://codyjhsieh.github.io/journeyofourdreams-globe/embed.html"
+  title="Journey of Our Dreams Travel Globe"
+  style="width:100%;height:80vh;min-height:560px;border:0;border-radius:16px;overflow:hidden;"
+  loading="lazy" allow="accelerometer; gyroscope"&gt;
+&lt;/iframe&gt;</pre>
+    </div>
+    <p class="cap" style="margin-top:14px">Replace the URL host with your GitHub Pages address after you publish the repo.</p>
+  </div>
+</section>
+
+<footer>
+  Built from a live scrape of <a href="https://www.journeyofourdreams.com/blog" target="_blank" rel="noopener">journeyofourdreams.com</a>.
+  Borders: Natural Earth (50m) · Geocoding: OpenStreetMap Nominatim · Globe: globe.gl / three.js.
+</footer>
+
+<script>
+function copySnip(){
+  const t=document.getElementById('snip').innerText;
+  navigator.clipboard.writeText(t).then(()=>{ const b=event.target; b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy',1600); });
+}
+</script>
+</body>
+</html>
