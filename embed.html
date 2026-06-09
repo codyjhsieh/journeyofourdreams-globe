@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Journey of Our Dreams — Travel Globe</title>
 <style>
-  /* ============ Apple Liquid Glass design system ============ */
+  /* ============ Apple Liquid Glass — minimalist light mode ============ */
   :root{
-    --ink:#f5f7ff; --muted:#b9c1da; --accent:#ffd24c;
+    --ink:#1c2330; --muted:#6b7488; --accent:#0a84ff;
     --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
     --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
-    /* the glass material */
-    --glass-bg:rgba(28,32,46,.42);
-    --glass-blur:saturate(185%) blur(26px);
-    --glass-stroke:rgba(255,255,255,.16);
+    /* the glass material (light) */
+    --glass-bg:rgba(255,255,255,.46);
+    --glass-blur:saturate(180%) blur(26px);
+    --glass-stroke:rgba(255,255,255,.65);
     --glass-shadow:
-      0 10px 34px rgba(0,0,0,.42),
-      0 2px 8px rgba(0,0,0,.30),
-      inset 0 1px 0 rgba(255,255,255,.50),
-      inset 0 0 0 .5px rgba(255,255,255,.10),
-      inset 0 -10px 26px rgba(255,255,255,.03);
+      0 12px 36px rgba(60,80,120,.16),
+      0 2px 8px rgba(60,80,120,.10),
+      inset 0 1px 0 rgba(255,255,255,.85),
+      inset 0 0 0 .5px rgba(255,255,255,.4);
     --r-lg:26px; --r-md:20px; --pill:999px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%;background:#05070d;overflow:hidden;color:var(--ink);
+  html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);
+    background:linear-gradient(180deg,#f3f6fc 0%,#e7edf7 60%,#dfe7f3 100%);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",
       Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
@@ -35,14 +35,13 @@
     border:.5px solid var(--glass-stroke);border-radius:var(--r-lg);
     box-shadow:var(--glass-shadow);isolation:isolate}
   .glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
-    background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 36%);
-    -webkit-mask:linear-gradient(#000,#000);mix-blend-mode:screen;opacity:.7}
+    background:linear-gradient(180deg,rgba(255,255,255,.65),rgba(255,255,255,0) 42%);opacity:.9}
 
   /* ---- loader ---- */
   #loader{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:16px;background:radial-gradient(120% 90% at 50% 35%,#0c1224,#05070d);z-index:60;transition:opacity .6s}
+    gap:16px;background:radial-gradient(120% 90% at 50% 35%,#f6f8fd,#e4ebf6);z-index:60;transition:opacity .6s}
   #loader.hide{opacity:0;pointer-events:none}
-  .spin{width:40px;height:40px;border:3px solid rgba(255,255,255,.14);border-top-color:var(--accent);
+  .spin{width:40px;height:40px;border:3px solid rgba(60,80,120,.14);border-top-color:var(--accent);
     border-radius:50%;animation:r 1s linear infinite}
   @keyframes r{to{transform:rotate(360deg)}}
   #loader small{color:var(--muted);font-size:13px;letter-spacing:.2px}
@@ -58,7 +57,7 @@
   .chip a{color:var(--accent);text-decoration:none;font-weight:500}
   .stats{display:flex;gap:8px;flex:none}
   .stat{padding:9px 14px;text-align:center;min-width:62px}
-  .stat b{display:block;font-size:19px;line-height:1;color:#fff;font-weight:600;letter-spacing:.3px}
+  .stat b{display:block;font-size:19px;line-height:1;color:var(--ink);font-weight:600;letter-spacing:.3px}
   .stat span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px;display:block}
 
   /* ---- bottom controls ---- */
@@ -68,7 +67,7 @@
   .searchwrap svg{flex:none;opacity:.7}
   #search{flex:1;background:none;border:0;outline:none;color:var(--ink);font-size:15px;font-family:inherit;height:100%}
   #search::placeholder{color:var(--muted)}
-  .clear{width:30px;height:30px;border-radius:var(--pill);border:0;background:rgba(255,255,255,.12);color:var(--ink);
+  .clear{width:30px;height:30px;border-radius:var(--pill);border:0;background:rgba(20,30,50,.08);color:var(--ink);
     font-size:15px;cursor:pointer;display:none;align-items:center;justify-content:center}
   .legend{display:flex;flex-wrap:wrap;gap:5px 13px;padding:9px 14px;font-size:11px;color:var(--muted)}
   .legend span{display:inline-flex;align-items:center;white-space:nowrap}
@@ -89,20 +88,20 @@
   .ph h2{margin:0;font-size:19px;font-weight:600;letter-spacing:.2px;padding-right:38px}
   .ph .sub{margin-top:4px;font-size:12.5px;color:var(--muted)}
   .ph .x{position:absolute;top:16px;right:14px;width:30px;height:30px;border-radius:var(--pill);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:17px;
-    background:rgba(255,255,255,.14);border:.5px solid rgba(255,255,255,.18)}
+    display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:15px;
+    background:rgba(20,30,50,.07);border:.5px solid rgba(20,30,50,.10)}
   .ph .x:active{transform:scale(.92)}
   .plist{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px calc(12px + var(--safe-b));flex:1}
   .post{display:flex;gap:13px;padding:10px;border-radius:16px;text-decoration:none;color:var(--ink);
     transition:background .15s,transform .1s}
   .post:active{transform:scale(.985)}
-  @media(hover:hover){.post:hover{background:rgba(255,255,255,.08)}}
-  .post img{width:64px;height:64px;border-radius:13px;object-fit:cover;flex:none;background:#1a2235;
-    box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+  @media(hover:hover){.post:hover{background:rgba(10,90,200,.07)}}
+  .post img{width:64px;height:64px;border-radius:13px;object-fit:cover;flex:none;background:#dde5f1;
+    box-shadow:inset 0 0 0 .5px rgba(20,40,80,.10)}
   .post .t{font-size:13.5px;font-weight:600;line-height:1.3}
   .post .d{font-size:11.5px;color:var(--muted);margin-top:4px}
 
-  ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:rgba(170,185,225,.28);border-radius:8px}
+  ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:rgba(120,140,180,.35);border-radius:8px}
 
   /* ============ mobile ============ */
   @media(max-width:600px){
@@ -116,7 +115,7 @@
     #panel{top:auto;left:0;right:0;bottom:0;width:100%;max-height:78dvh;
       border-radius:26px 26px 0 0;transform:translateY(calc(100% + 24px))}
     #panel.open{transform:none}
-    .grab{display:block;width:38px;height:5px;border-radius:99px;background:rgba(255,255,255,.32);
+    .grab{display:block;width:38px;height:5px;border-radius:99px;background:rgba(40,60,90,.22);
       margin:9px auto 2px;flex:none}
     .ph{padding-top:6px}
   }
@@ -162,11 +161,12 @@
 
 <script src="https://unpkg.com/globe.gl@2.34.4/dist/globe.gl.min.js"></script>
 <script>
-const EARTH = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
-const BUMP  = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
-const YEAR_COLORS = {'2018':'#7CFFB2','2020':'#5BC8FF','2021':'#9D8CFF','2022':'#FF8FB1',
-  '2023':'#FFC36B','2024':'#FF7A59','2025':'#4ED8C0','2026':'#FFD24C'};
-const colorForYear = y => YEAR_COLORS[y] || '#FFD24C';
+// minimalist light palette (Apple system-ish colors, tuned for a light globe)
+const YEAR_COLORS = {'2018':'#34c759','2020':'#0a84ff','2021':'#5e5ce6','2022':'#ff375f',
+  '2023':'#ff9f0a','2024':'#ff6b35','2025':'#00b3a4','2026':'#d4a017'};
+const colorForYear = y => YEAR_COLORS[y] || '#0a84ff';
+const OCEAN='#e6edf8', LAND='#ffffff', LAND_STROKE='rgba(120,140,175,.45)',
+      VISIT_FILL='rgba(10,132,255,.16)', VISIT_STROKE='#3a8cff';
 
 let world, LOCATIONS = [], VISITED = new Set();
 const $ = id => document.getElementById(id);
@@ -186,36 +186,51 @@ async function boot(){
   $('cCount').textContent = locs.length;
   buildLegend(meta.years);
 
-  setMsg('Rendering the Earth…');
+  setMsg('Rendering the globe…');
   const isV = f => VISITED.has((f.properties.ISO_A2_EH||'').toUpperCase())
                 || VISITED.has((f.properties.ISO_A2||'').toUpperCase());
 
-  world = Globe()(document.getElementById('globe'))
-    .globeImageUrl(EARTH).bumpImageUrl(BUMP)
-    .backgroundColor('#05070d')
-    .showAtmosphere(true).atmosphereColor('#6ea0ff').atmosphereAltitude(0.18)
+  world = Globe({
+      rendererConfig:{ antialias:true, alpha:true, powerPreference:'high-performance' },
+      animateIn:false
+    })(document.getElementById('globe'))
+    .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
+    .showAtmosphere(true).atmosphereColor('#bcd4ff').atmosphereAltitude(0.16)
+    // clean vector world: every country drawn as land, visited highlighted
     .polygonsData(geo.features)
-    .polygonCapColor(f => isV(f) ? 'rgba(255,210,76,0.20)' : 'rgba(0,0,0,0)')
-    .polygonSideColor(() => 'rgba(0,0,0,0)')
-    .polygonStrokeColor(f => isV(f) ? '#ffd24c' : 'rgba(150,175,225,0.26)')
-    .polygonAltitude(f => isV(f) ? 0.012 : 0.006)
-    .polygonLabel(f => isV(f)
-      ? `<div class="g-tip"><b>📍 ${f.properties.ADMIN}</b></div>` : '')
+    .polygonCapColor(f => isV(f) ? VISIT_FILL : LAND)
+    .polygonSideColor(() => 'rgba(150,170,205,0.12)')
+    .polygonStrokeColor(f => isV(f) ? VISIT_STROKE : LAND_STROKE)
+    .polygonAltitude(f => isV(f) ? 0.012 : 0.008)
+    .polygonsTransitionDuration(0)
+    .polygonLabel(f => isV(f) ? `<div class="g-tip"><b>${f.properties.ADMIN}</b></div>` : '')
     .pointsData(LOCATIONS)
     .pointLat('lat').pointLng('lng')
     .pointColor(d => colorForYear(d.year))
-    .pointAltitude(d => 0.01 + Math.min(d.posts.length,12)*0.006)
+    .pointAltitude(d => 0.02 + Math.min(d.posts.length,12)*0.006)
     .pointRadius(d => 0.18 + Math.min(d.posts.length,12)*0.03)
     .pointLabel(d => `<div class="g-tip"><b>${d.name}</b><br><span>${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}</span></div>`)
     .onPointClick(openLocation)
     .pointsMerge(false).pointsTransitionDuration(0);
 
+  // ---- light "liquid glass" globe material: translucent glossy ocean ----
+  const m = world.globeMaterial();
+  m.color.set(OCEAN);
+  if (m.specular) m.specular.set('#ffffff');
+  m.shininess = 14; m.transparent = true; m.opacity = 0.93;
+
+  // ---- guarantee a smooth 60fps spin ----
+  world.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); // no 3× retina overdraw
+
   const c = world.controls();
-  c.autoRotate = true; c.autoRotateSpeed = 0.42;
-  c.enableDamping = true; c.dampingFactor = 0.12;
+  c.autoRotate = true; c.autoRotateSpeed = 0.5;
+  c.enableDamping = true; c.dampingFactor = 0.12; c.rotateSpeed = 0.7;
   c.minDistance = 130; c.maxDistance = 620;
+  let idleTimer;
+  const stopSpin = ()=>{ c.autoRotate=false; clearTimeout(idleTimer);
+    idleTimer=setTimeout(()=>{ if(!$('panel').classList.contains('open')) c.autoRotate=true; }, 4000); };
   ['mousedown','touchstart','wheel'].forEach(ev=>
-    document.getElementById('globe').addEventListener(ev,()=>{c.autoRotate=false},{passive:true}));
+    document.getElementById('globe').addEventListener(ev, stopSpin, {passive:true}));
 
   world.pointOfView({ lat:25, lng:10, altitude: window.innerWidth<600 ? 2.9 : 2.4 }, 0);
   resize(); window.addEventListener('resize', resize);
@@ -274,10 +289,10 @@ clearBtn.addEventListener('click', ()=>{ search.value=''; clearBtn.style.display
 
 // tooltip styling injected (globe.gl renders label HTML in an overlay)
 const st=document.createElement('style');
-st.textContent=`.g-tip{background:rgba(20,24,36,.62);-webkit-backdrop-filter:saturate(180%) blur(18px);
-  backdrop-filter:saturate(180%) blur(18px);color:#fff;padding:7px 11px;border-radius:13px;font-size:12px;
-  border:.5px solid rgba(255,255,255,.18);box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.4);
-  max-width:230px;line-height:1.35}.g-tip span{color:#b9c1da}`;
+st.textContent=`.g-tip{background:rgba(255,255,255,.7);-webkit-backdrop-filter:saturate(180%) blur(18px);
+  backdrop-filter:saturate(180%) blur(18px);color:#1c2330;padding:7px 11px;border-radius:13px;font-size:12px;
+  border:.5px solid rgba(255,255,255,.8);box-shadow:0 10px 26px rgba(60,80,120,.20),inset 0 1px 0 rgba(255,255,255,.9);
+  max-width:230px;line-height:1.35;font-weight:500}.g-tip span{color:#6b7488;font-weight:400}`;
 document.head.appendChild(st);
 
 boot().catch(err=>{ console.error(err); setMsg('Could not load data. '+err.message); });
