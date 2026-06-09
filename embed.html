@@ -4,6 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Journey of Our Dreams — Travel Globe</title>
+<!-- fast first paint: warm up the heaviest assets immediately -->
+<link rel="preload" as="script" href="vendor/globe.gl.min.js" />
+<link rel="preload" as="image" href="data/globe-texture.png" />
+<link rel="preload" as="fetch" href="data/locations.json" crossorigin />
+<link rel="preload" as="fetch" href="data/meta.json" crossorigin />
 <style>
   /* ============ Apple Liquid Glass — minimalist light mode ============ */
   :root{
@@ -20,8 +25,14 @@
       inset 0 1px 0 rgba(255,255,255,.85),
       inset 0 0 0 .5px rgba(255,255,255,.4);
     --r-lg:26px; --r-md:20px; --pill:999px;
+    /* Liquid Glass motion: a smooth settling spring + a gel press (slight overshoot) */
+    --spring:cubic-bezier(.32,.72,0,1);
+    --gel:cubic-bezier(.34,1.4,.64,1);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  @keyframes lg-in{from{opacity:0;transform:translateY(10px) scale(.96);filter:blur(6px)}
+    to{opacity:1;transform:none;filter:blur(0)}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
   html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);
     background:linear-gradient(180deg,#f3f6fc 0%,#e7edf7 60%,#dfe7f3 100%);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",
@@ -75,6 +86,45 @@
   .hint{position:fixed;z-index:30;right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));
     padding:9px 14px;font-size:11.5px;color:var(--muted);border-radius:var(--pill)}
 
+  /* ---- 2D / 3D segmented switch: Liquid Glass with a gliding selector ---- */
+  .seg{position:fixed;z-index:31;top:calc(14px + var(--safe-t));left:0;right:0;margin-inline:auto;width:max-content;
+    display:flex;padding:4px;border-radius:var(--pill);
+    animation:lg-in .6s var(--spring) both;animation-delay:.12s}
+  .seg-ind{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:var(--pill);z-index:0;
+    background:rgba(255,255,255,.92);box-shadow:0 2px 9px rgba(60,80,120,.20),inset 0 1px 0 rgba(255,255,255,.95);
+    transition:transform .52s var(--spring),width .52s var(--spring)}
+  .seg button{position:relative;z-index:1;flex:1;min-width:52px;border:0;background:none;color:var(--muted);
+    font:inherit;font-size:13px;font-weight:600;letter-spacing:.3px;padding:8px 18px;border-radius:var(--pill);
+    cursor:pointer;transition:color .28s var(--spring),transform .18s var(--gel)}
+  .seg button.on{color:var(--ink)}
+  .seg button:active{transform:scale(.9)}
+
+  /* ---- 2D flat map view ---- */
+  #map{position:fixed;inset:0;overflow:hidden;touch-action:none;cursor:grab;
+    background:linear-gradient(180deg,#eaf1fb,#e3ebf7)}
+  #map.dragging{cursor:grabbing}
+  /* fluid Liquid Glass morph between the two views (scale + blur cross-fade) */
+  #globe,#map{transition:opacity .55s var(--spring),transform .6s var(--spring),filter .55s var(--spring)}
+  #globe.off,#map.off{opacity:0;transform:scale(.93);filter:blur(12px);pointer-events:none}
+  #mapLayer{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+  #mapImg{display:block;width:2048px;height:1024px;pointer-events:none;user-select:none;-webkit-user-drag:none}
+  .pin2d{position:absolute;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;
+    border:1.5px solid rgba(255,255,255,.95);box-shadow:0 1px 4px rgba(40,60,90,.45);transition:transform .1s}
+  .pin2d:hover{z-index:5}
+  .pin2d:active{transform:translate(-50%,-50%) scale(.85)}
+
+  /* ---- Liquid Glass entrance stagger + gel press for every control ---- */
+  .topbar{animation:lg-in .6s var(--spring) both}
+  .controls{animation:lg-in .6s var(--spring) both;animation-delay:.18s}
+  .hint{animation:lg-in .6s var(--spring) both;animation-delay:.26s}
+  .chip,.stat{transition:transform .22s var(--gel)}
+  .chip:active,.stat:active{transform:scale(.97)}
+  .searchwrap{transition:transform .22s var(--gel),box-shadow .3s var(--spring)}
+  .searchwrap:focus-within{transform:scale(1.015)}
+  .clear{transition:transform .18s var(--gel),background .2s}
+  .clear:active{transform:scale(.85)}
+  .ph .x{transition:transform .18s var(--gel),background .2s}
+
   /* ---- detail panel: side sheet (desktop) / bottom sheet (mobile) ---- */
   #scrim{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.28);opacity:0;pointer-events:none;
     transition:opacity .35s;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
@@ -124,8 +174,15 @@
 </head>
 <body>
 <div id="globe"></div>
+<div id="map" class="off"><div id="mapLayer"><img id="mapImg" src="data/globe-texture.png" alt="World map" draggable="false"/></div></div>
 
 <div id="loader"><div class="spin"></div><small id="lmsg">Loading the globe…</small></div>
+
+<div class="seg glass">
+  <span class="seg-ind" id="segInd"></span>
+  <button id="seg3d" class="on" type="button">3D</button>
+  <button id="seg2d" type="button">2D</button>
+</div>
 
 <div class="topbar">
   <div class="chip glass">
@@ -146,7 +203,7 @@
   </div>
   <div class="legend glass" id="legend"></div>
 </div>
-<div class="hint glass">Drag to spin · scroll to zoom · click a pin</div>
+<div class="hint glass" id="hint">Drag to spin · scroll to zoom · click a pin</div>
 
 <div id="scrim" onclick="closePanel()"></div>
 <aside id="panel" class="glass">
@@ -159,100 +216,41 @@
   <div class="plist" id="pList"></div>
 </aside>
 
-<script src="https://unpkg.com/globe.gl@2.34.4/dist/globe.gl.min.js"></script>
+<script src="vendor/globe.gl.min.js"></script>
 <script>
 // minimalist light palette (Apple system-ish colors, tuned for a light globe)
 const YEAR_COLORS = {'2018':'#34c759','2020':'#0a84ff','2021':'#5e5ce6','2022':'#ff375f',
   '2023':'#ff9f0a','2024':'#ff6b35','2025':'#00b3a4','2026':'#d4a017'};
 const colorForYear = y => YEAR_COLORS[y] || '#0a84ff';
-// soft multi-colored pastel palette for a frosted "candy" political globe (opaque => smooth)
-const PASTELS=['#cfe1fb','#c9e9d6','#d8dcf7','#ecd9ef','#f9dce6','#fde4cf','#f6ecc5',
-               '#dde9c9','#cdebe9','#e7d9f6','#d9e6f2','#fbe2c8','#d6ece0','#f0dcea'];
-const OCEAN='#eaf1fb', FROST_STROKE='rgba(255,255,255,.85)', VISIT_STROKE='rgba(255,255,255,.95)';
-function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return h; }
-function mixWhite(hex,t){ const n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,
-  m=(c)=>Math.round(c+(255-c)*t); return `rgb(${m(r)},${m(g)},${m(b)})`; }
-function countryFill(f, visited){
-  const key=(f.properties.ISO_A3||f.properties.ADMIN||f.properties.NAME||'');
-  const col=PASTELS[hashStr(key)%PASTELS.length];
-  return visited ? col : mixWhite(col, 0.30);   // unvisited softened toward white => visited gently pop
-}
+// The soft-pastel frosted political map is pre-baked once (see bake.html) into
+// data/globe-texture.png — a 152KB image instead of a 3MB geojson + runtime canvas bake.
+const GLOBE_TEXTURE = 'data/globe-texture.png';
 
-// Bake the soft-pastel frosted political map to an equirectangular texture (drawn ONCE).
-// Longitudes are unwrapped for continuity and each polygon is drawn at x, x-W, x+W so
-// shapes crossing the antimeridian (Russia, Fiji, …) wrap cleanly instead of smearing.
-function buildGlobeTexture(geo, isV){
-  const W=4096, H=2048, cv=document.createElement('canvas');
-  cv.width=W; cv.height=H;
-  const g=cv.getContext('2d');
-  g.fillStyle=OCEAN; g.fillRect(0,0,W,H);
-  g.lineJoin='round'; g.lineCap='round';
-  const project=(lng,lat)=>[ (lng+180)/360*W, (90-lat)/180*H ];
-  for(const f of geo.features){
-    const visited=isV(f);
-    const fill=countryFill(f, visited);
-    const polys = f.geometry.type==='MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
-    for(const poly of polys){
-      const ringsPx = poly.map(ring=>{
-        let prev=null, pts=[];
-        for(let p of ring){
-          let lng=p[0];
-          if(prev!==null){ while(lng-prev>180) lng-=360; while(lng-prev<-180) lng+=360; }
-          prev=lng; pts.push(project(lng,p[1]));
-        }
-        return pts;
-      });
-      for(const dx of [0,-W,W]){
-        g.beginPath();
-        for(const pts of ringsPx){
-          g.moveTo(pts[0][0]+dx, pts[0][1]);
-          for(let i=1;i<pts.length;i++) g.lineTo(pts[i][0]+dx, pts[i][1]);
-          g.closePath();
-        }
-        g.fillStyle=fill; g.fill('evenodd');
-        g.lineWidth = visited ? 2.6 : 1.6;
-        g.strokeStyle = visited ? VISIT_STROKE : FROST_STROKE;
-        g.stroke();
-      }
-    }
-  }
-  return cv.toDataURL('image/png');
-}
-
-let world, LOCATIONS = [], VISITED = new Set();
+let world, LOCATIONS = [];
 const $ = id => document.getElementById(id);
 const setMsg = m => { const e=$('lmsg'); if(e) e.textContent=m; };
 
 async function boot(){
   setMsg('Fetching travels…');
-  const [locs, meta, geo] = await Promise.all([
+  const [locs, meta] = await Promise.all([
     fetch('data/locations.json').then(r=>r.json()),
-    fetch('data/meta.json').then(r=>r.json()),
-    fetch('data/countries-50m.geojson').then(r=>r.json())
+    fetch('data/meta.json').then(r=>r.json())
   ]);
   LOCATIONS = locs;
-  VISITED = new Set(meta.visited_cc);
   $('sPosts').textContent = meta.post_count;
   $('sCountries').textContent = meta.country_count;
   $('cCount').textContent = locs.length;
   buildLegend(meta.years);
 
   setMsg('Rendering the globe…');
-  const isV = f => VISITED.has((f.properties.ISO_A2_EH||'').toUpperCase())
-                || VISITED.has((f.properties.ISO_A2||'').toUpperCase());
-
-  // BUTTERY-SMOOTH STRATEGY: bake the entire pastel/frosted political map into ONE
-  // texture (drawn once from the same geojson) instead of ~700 live country meshes.
-  // Result: the country layer costs 1 draw call instead of hundreds -> GPU coasts at 60fps.
-  const tex = buildGlobeTexture(geo, isV);
-
+  // Pre-baked single-texture country layer => 1 draw call (not ~700) => buttery 60fps.
   world = Globe({
       rendererConfig:{ antialias:true, alpha:true, powerPreference:'high-performance' },
       animateIn:false, controlType:'orbit'
     })(document.getElementById('globe'))
     .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
     .showAtmosphere(true).atmosphereColor('#c7dcff').atmosphereAltitude(0.18)
-    .globeImageUrl(tex)                                   // the baked soft-pastel frosted map
+    .globeImageUrl(GLOBE_TEXTURE)                         // pre-baked soft-pastel frosted map
     .pointsData(LOCATIONS)
     .pointLat('lat').pointLng('lng')
     .pointColor(d => colorForYear(d.year))
@@ -297,6 +295,8 @@ async function boot(){
 
   world.pointOfView({ lat:25, lng:10, altitude: window.innerWidth<600 ? 2.9 : 2.4 }, 0);
   resize(); window.addEventListener('resize', resize);
+  buildPins2d();                       // data is ready -> build 2D pins now (robust vs deep-link race)
+  if(view==='2d'){ mz=coverScale(); mx=(innerWidth-MAP_W*mz)/2; my=(innerHeight-MAP_H*mz)/2; applyMap(); }
   setTimeout(()=>$('loader').classList.add('hide'), 500);
 }
 
@@ -318,8 +318,8 @@ function openLocation(d){
       <div><div class="t">${esc(p.title)}</div><div class="d">${p.date}</div></div>
     </a>`).join('');
   $('panel').classList.add('open'); $('scrim').classList.add('show');
-  world.controls().autoRotate=false;
-  world.pointOfView({ lat:d.lat, lng:d.lng, altitude:1.4 }, 900);
+  if (view === '2d') { centerOn(d.lat, d.lng, Math.max(coverScale(), 2.4)); }
+  else if (world) { world.controls().autoRotate=false; world.pointOfView({ lat:d.lat, lng:d.lng, altitude:1.4 }, 900); }
 }
 function closePanel(){ $('panel').classList.remove('open'); $('scrim').classList.remove('show'); }
 const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -331,7 +331,9 @@ function findHit(q){ q=q.trim().toLowerCase(); return q && LOCATIONS.find(l=>
 search.addEventListener('input', e=>{
   clearBtn.style.display = e.target.value ? 'flex' : 'none';
   const hit = findHit(e.target.value);
-  if(hit) world.pointOfView({lat:hit.lat,lng:hit.lng,altitude:1.6}, 900);
+  if(!hit) return;
+  if(view==='2d') centerOn(hit.lat, hit.lng, Math.max(coverScale(), 2.4));
+  else if(world) world.pointOfView({lat:hit.lat,lng:hit.lng,altitude:1.6}, 900);
 });
 search.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const h=findHit(e.target.value); if(h) openLocation(h); }});
 clearBtn.addEventListener('click', ()=>{ search.value=''; clearBtn.style.display='none'; search.focus(); });
@@ -357,6 +359,82 @@ st.textContent=`.g-tip{background:rgba(255,255,255,.7);-webkit-backdrop-filter:s
   border:.5px solid rgba(255,255,255,.8);box-shadow:0 10px 26px rgba(60,80,120,.20),inset 0 1px 0 rgba(255,255,255,.9);
   max-width:230px;line-height:1.35;font-weight:500}.g-tip span{color:#6b7488;font-weight:400}`;
 document.head.appendChild(st);
+
+// ===================== 2D flat-map view (reuses the same texture + pins) =====================
+const MAP_W=2048, MAP_H=1024;
+let view='3d', pins2dBuilt=false, mz=1, mx=0, my=0;
+const mapEl=$('map'), layer=$('mapLayer'), segInd=$('segInd');
+// glide the Liquid Glass selector under the active segment
+function moveInd(btn){ if(!btn) return; segInd.style.transform=`translateX(${btn.offsetLeft}px)`; segInd.style.width=btn.offsetWidth+'px'; }
+const ll2xy=(lat,lng)=>[ (lng+180)/360*MAP_W, (90-lat)/180*MAP_H ];
+const coverScale=()=>Math.max(innerWidth/MAP_W, innerHeight/MAP_H);
+function clampPan(){
+  const cw=innerWidth, ch=innerHeight, w=MAP_W*mz, h=MAP_H*mz;
+  mx = w<=cw ? (cw-w)/2 : Math.min(0, Math.max(cw-w, mx));
+  my = h<=ch ? (ch-h)/2 : Math.min(0, Math.max(ch-h, my));
+}
+function applyMap(){ clampPan(); layer.style.transform=`translate(${mx}px,${my}px) scale(${mz})`; }
+function centerOn(lat,lng,z){
+  mz = Math.min(8, z||coverScale());
+  const [x,y]=ll2xy(lat,lng);
+  mx = innerWidth/2 - x*mz; my = innerHeight/2 - y*mz; applyMap();
+}
+function buildPins2d(){
+  if(pins2dBuilt || !LOCATIONS.length) return; pins2dBuilt=true;
+  const frag=document.createDocumentFragment();
+  LOCATIONS.forEach(d=>{
+    const [x,y]=ll2xy(d.lat,d.lng), n=Math.min(d.posts.length,12), sz=9+n*1.4;
+    const b=document.createElement('button');
+    b.className='pin2d'; b.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${colorForYear(d.year)}`;
+    b.title=`${d.name} — ${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}`;
+    b.addEventListener('click', ev=>{ ev.stopPropagation(); openLocation(d); });
+    frag.appendChild(b);
+  });
+  layer.appendChild(frag);
+}
+function setView(v){
+  if(v===view) return; view=v;
+  const is2 = v==='2d';
+  $('seg2d').classList.toggle('on', is2); $('seg3d').classList.toggle('on', !is2);
+  moveInd(is2 ? $('seg2d') : $('seg3d'));
+  $('map').classList.toggle('off', !is2); $('globe').classList.toggle('off', is2);
+  $('hint') && ($('hint').textContent = is2 ? 'Drag to pan · scroll to zoom · click a pin' : 'Drag to spin · scroll to zoom · click a pin');
+  if(is2){ buildPins2d(); if(world){ world.controls().autoRotate=false; world.pauseAnimation&&world.pauseAnimation(); }
+    mz=coverScale(); mx=(innerWidth-MAP_W*mz)/2; my=(innerHeight-MAP_H*mz)/2; applyMap(); }
+  else if(world){ world.resumeAnimation&&world.resumeAnimation(); world.controls().autoRotate=true; resize(); }
+}
+$('seg2d').addEventListener('click', ()=>setView('2d'));
+$('seg3d').addEventListener('click', ()=>setView('3d'));
+
+// unified pan (1 pointer) + pinch-zoom (2 pointers); pin taps still fire (no pointer capture)
+(function(){
+  const pts=new Map(); let pd=0, single=null;
+  mapEl.addEventListener('pointerdown', e=>{
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){ single={x:e.clientX,y:e.clientY}; mapEl.classList.add('dragging'); } else { single=null; pd=0; }
+  });
+  addEventListener('pointermove', e=>{
+    if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1 && single){ mx+=e.clientX-single.x; my+=e.clientY-single.y; single={x:e.clientX,y:e.clientY}; applyMap(); }
+    else if(pts.size>=2){ const [a,b]=[...pts.values()], d=Math.hypot(a.x-b.x,a.y-b.y);
+      const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2, r=mapEl.getBoundingClientRect(), ox=cx-r.left, oy=cy-r.top;
+      if(pd){ const nz=Math.min(8,Math.max(coverScale(), mz*d/pd)); mx=ox-(ox-mx)*(nz/mz); my=oy-(oy-my)*(nz/mz); mz=nz; applyMap(); }
+      pd=d; }
+  });
+  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2) pd=0;
+    if(pts.size===0){ single=null; mapEl.classList.remove('dragging'); }
+    else { const p=[...pts.values()][0]; single={x:p.x,y:p.y}; } };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  mapEl.addEventListener('wheel', e=>{ e.preventDefault();
+    const nz=Math.min(8, Math.max(coverScale(), mz*Math.exp(-e.deltaY*0.0015)));
+    const r=mapEl.getBoundingClientRect(), ox=e.clientX-r.left, oy=e.clientY-r.top;
+    mx=ox-(ox-mx)*(nz/mz); my=oy-(oy-my)*(nz/mz); mz=nz; applyMap();
+  }, {passive:false});
+})();
+addEventListener('resize', ()=>{ if(view==='2d') applyMap(); moveInd(view==='2d'?$('seg2d'):$('seg3d')); });
+// position the selector once layout settles + support #2d deep-link
+requestAnimationFrame(()=>moveInd($('seg3d')));
+if(location.hash==='#2d') addEventListener('load', ()=>setView('2d'));
 
 boot().catch(err=>{ console.error(err); setMsg('Could not load data. '+err.message); });
 </script>
