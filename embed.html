@@ -108,8 +108,10 @@
   #globe.off,#map.off{opacity:0;transform:scale(.93);filter:blur(12px);pointer-events:none}
   #mapLayer{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
   #mapImg{display:block;width:2048px;height:1024px;pointer-events:none;user-select:none;-webkit-user-drag:none}
-  /* 2D flat-map marker: a round dot drawn via ::after inside a generous tap target */
-  .pin2d{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;cursor:pointer;
+  /* 2D flat-map marker: a round dot drawn via ::after inside a generous tap target.
+     scale(var(--inv)) counter-scales the map's zoom so the dot keeps a constant screen
+     size (its position still tracks the map; pins just spread apart as you zoom in). */
+  .pin2d{position:absolute;transform:translate(-50%,-50%) scale(var(--inv,1));width:30px;height:30px;cursor:pointer;
     border:0;background:none;padding:0;pointer-events:auto;-webkit-user-select:none;user-select:none}
   .pin2d::after{content:"";position:absolute;top:50%;left:50%;width:var(--sz,14px);height:var(--sz,14px);
     transform:translate(-50%,-50%);border-radius:50%;background:var(--c,#0a84ff);
@@ -390,7 +392,8 @@ function clampPan(){
   mx = w<=cw ? (cw-w)/2 : Math.min(0, Math.max(cw-w, mx));
   my = h<=ch ? (ch-h)/2 : Math.min(0, Math.max(ch-h, my));
 }
-function applyMap(){ clampPan(); layer.style.transform=`translate(${mx}px,${my}px) scale(${mz})`; }
+function applyMap(){ clampPan(); layer.style.transform=`translate(${mx}px,${my}px) scale(${mz})`;
+  layer.style.setProperty('--inv', 1/mz); }   // keep pins a constant screen size at any zoom
 function centerOn(lat,lng,z){
   mz = Math.min(8, z||coverScale());
   const [x,y]=ll2xy(lat,lng);
