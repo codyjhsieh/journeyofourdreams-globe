@@ -108,19 +108,19 @@
   #globe.off,#map.off{opacity:0;transform:scale(.93);filter:blur(12px);pointer-events:none}
   #mapLayer{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
   #mapImg{display:block;width:2048px;height:1024px;pointer-events:none;user-select:none;-webkit-user-drag:none}
-  /* shared round marker: a generous transparent tap target with a centered dot drawn
-     via ::after, so the dot is always a perfect circle and easy to tap on touch.
-     (.gpin is positioned by globe.gl on the 3D globe; .pin2d by us on the flat map.) */
-  .gpin,.pin2d{width:30px;height:30px;cursor:pointer;border:0;background:none;padding:0;
-    pointer-events:auto;-webkit-user-select:none;user-select:none}
-  .pin2d{position:absolute;transform:translate(-50%,-50%)}
-  .gpin::after,.pin2d::after{content:"";position:absolute;top:50%;left:50%;
-    width:var(--sz,14px);height:var(--sz,14px);transform:translate(-50%,-50%);border-radius:50%;
-    background:var(--c,#0a84ff);border:1.6px solid rgba(255,255,255,.96);
-    box-shadow:0 1px 5px rgba(40,60,90,.5);transition:transform .12s var(--gel)}
-  @media(hover:hover){.gpin:hover::after,.pin2d:hover::after{transform:translate(-50%,-50%) scale(1.28)}}
-  .gpin:active::after,.pin2d:active::after{transform:translate(-50%,-50%) scale(.82)}
-  .gpin:hover,.pin2d:hover{z-index:6}
+  /* 2D flat-map marker: a round dot drawn via ::after inside a generous tap target */
+  .pin2d{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;cursor:pointer;
+    border:0;background:none;padding:0;pointer-events:auto;-webkit-user-select:none;user-select:none}
+  .pin2d::after{content:"";position:absolute;top:50%;left:50%;width:var(--sz,14px);height:var(--sz,14px);
+    transform:translate(-50%,-50%);border-radius:50%;background:var(--c,#0a84ff);
+    border:1.6px solid rgba(255,255,255,.96);box-shadow:0 1px 5px rgba(40,60,90,.5);
+    transition:transform .12s var(--gel)}
+  @media(hover:hover){.pin2d:hover::after{transform:translate(-50%,-50%) scale(1.28)}}
+  .pin2d:active::after{transform:translate(-50%,-50%) scale(.82)}
+  .pin2d:hover{z-index:6}
+  /* 3D globe: the visible pins are GPU-rendered (the look you liked); these are invisible,
+     oversized tap targets laid over each pin so they're easy to hit on touch. */
+  .ghit{width:30px;height:30px;cursor:pointer;pointer-events:auto;-webkit-user-select:none;user-select:none}
 
   /* ---- Liquid Glass entrance stagger + gel press for every control ---- */
   .topbar{animation:lg-in .6s var(--spring) both}
@@ -170,7 +170,7 @@
     .controls{max-width:none;right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b))}
     .legend{max-height:62px;overflow-y:auto}
     .hint{display:none}
-    .gpin,.pin2d{width:40px;height:40px}   /* fat-finger tap targets on touch */
+    .ghit,.pin2d{width:44px;height:44px}   /* 44px = Apple's min touch target */
     /* bottom sheet */
     #panel{top:auto;left:0;right:0;bottom:0;width:100%;max-height:78dvh;
       border-radius:26px 26px 0 0;transform:translateY(calc(100% + 24px))}
@@ -256,16 +256,22 @@ async function boot(){
     .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
     .showAtmosphere(true).atmosphereColor('#c7dcff').atmosphereAltitude(0.18)
     .globeImageUrl(GLOBE_TEXTURE)                         // pre-baked soft-pastel frosted map
-    // round, screen-facing HTML markers: always circular + a big tap target + real DOM clicks
-    // (globe.gl auto-hides the ones occluded behind the globe)
+    // the 3D pin markers (the look you liked)
+    .pointsData(LOCATIONS)
+    .pointLat('lat').pointLng('lng')
+    .pointColor(d => colorForYear(d.year))
+    .pointAltitude(d => 0.02 + Math.min(d.posts.length,12)*0.006)
+    .pointRadius(d => 0.18 + Math.min(d.posts.length,12)*0.03)
+    .pointLabel(d => `<div class="g-tip"><b>${d.name}</b><br><span>${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}</span></div>`)
+    .onPointClick(openLocation)
+    .pointsMerge(false).pointsTransitionDuration(0)
+    // invisible oversized HTML tap-targets over each pin => easy to tap on mobile
+    // (globe.gl auto-hides the ones occluded behind the globe, so back pins aren't tappable)
     .htmlElementsData(LOCATIONS)
-    .htmlLat('lat').htmlLng('lng').htmlAltitude(0.012)
+    .htmlLat('lat').htmlLng('lng').htmlAltitude(0.025)
     .htmlElement(d => {
-      const n = Math.min(d.posts.length, 12);
       const el = document.createElement('div');
-      el.className = 'gpin';
-      el.style.setProperty('--c', colorForYear(d.year));
-      el.style.setProperty('--sz', (13 + n * 1.4) + 'px');
+      el.className = 'ghit';
       el.title = `${d.name} — ${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}`;
       el.addEventListener('click', e => { e.stopPropagation(); openLocation(d); });
       return el;
