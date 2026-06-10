@@ -293,11 +293,14 @@ async function boot(){
       return el;
     });
 
-  // ---- frosted glass material; baked map lives in m.map, so keep base color white ----
+  // ---- diffuse, matte material: no specular highlight, so the globe is lit purely by
+  //      diffuse + ambient light (the baked map lives in m.map; keep base color white) ----
   const m = world.globeMaterial();
   m.color && m.color.set('#ffffff');
-  if (m.specular) m.specular.set('#eaf1ff');
-  m.shininess = 5; m.transparent = false; m.opacity = 1;
+  if (m.specular) m.specular.set('#000000');   // kill specular => purely diffuse/matte
+  m.shininess = 0;
+  if ('reflectivity' in m) m.reflectivity = 0;
+  m.transparent = false; m.opacity = 1; m.needsUpdate = true;
 
   // ---- ambient, even lighting: lift the dark side so the globe reads frosted & soft ----
   try{
