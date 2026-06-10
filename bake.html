@@ -2,7 +2,7 @@
 <html><head><meta charset="utf-8"/>
 <style>html,body{margin:0;padding:0;background:#fff}canvas{display:block}</style>
 </head><body>
-<canvas id="c" width="4096" height="2048"></canvas>
+<canvas id="c"></canvas>
 <script>
 // One-time generator for data/globe-texture.png — renders the soft-pastel frosted
 // political map to an equirectangular canvas, identical to the old runtime bake.
@@ -23,7 +23,9 @@ const countryFill=(f,v)=>{const k=(f.properties.ISO_A3||f.properties.ADMIN||f.pr
   ]);
   const VIS=new Set(meta.visited_cc);
   const isV=f=>VIS.has((f.properties.ISO_A2_EH||'').toUpperCase())||VIS.has((f.properties.ISO_A2||'').toUpperCase());
-  const W=4096,H=2048,g=document.getElementById('c').getContext('2d');
+  const W=parseInt((location.hash||'').slice(1))||4096, H=W/2;   // #8192 -> 8192x4096
+  const cv=document.getElementById('c'); cv.width=W; cv.height=H;
+  const g=cv.getContext('2d');
   g.fillStyle=OCEAN;g.fillRect(0,0,W,H);g.lineJoin='round';g.lineCap='round';
   const project=(lng,lat)=>[(lng+180)/360*W,(90-lat)/180*H];
   for(const f of geo.features){

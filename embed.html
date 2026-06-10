@@ -107,7 +107,7 @@
   #globe,#map{transition:opacity .55s var(--spring),transform .6s var(--spring),filter .55s var(--spring)}
   #globe.off,#map.off{opacity:0;transform:scale(.93);filter:blur(12px);pointer-events:none}
   #mapLayer{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
-  #mapImg{display:block;width:2048px;height:1024px;pointer-events:none;user-select:none;-webkit-user-drag:none}
+  #mapImg{display:block;width:8192px;height:4096px;pointer-events:none;user-select:none;-webkit-user-drag:none}
   /* 2D flat-map marker: a round dot drawn via ::after inside a generous tap target.
      scale(var(--inv)) counter-scales the map's zoom so the dot keeps a constant screen
      size (its position still tracks the map; pins just spread apart as you zoom in). */
@@ -190,7 +190,7 @@
 </head>
 <body>
 <div id="globe"></div>
-<div id="map" class="off"><div id="mapLayer"><img id="mapImg" src="data/globe-texture.png" alt="World map" draggable="false"/></div></div>
+<div id="map" class="off"><div id="mapLayer"><img id="mapImg" alt="World map" draggable="false"/></div></div>
 
 <div id="loader"><div class="spin"></div><small id="lmsg">Loading the globe…</small></div>
 
@@ -329,6 +329,7 @@ async function boot(){
   world.pointOfView({ lat:25, lng:10, altitude: window.innerWidth<600 ? 2.9 : 2.4 }, 0);
   resize(); window.addEventListener('resize', resize);
   buildPins2d();                       // data is ready -> build 2D pins now (robust vs deep-link race)
+  $('mapImg').src = 'data/globe-map-2d.png';   // lazy-load hi-res 2D map (doesn't block 3D)
   if(view==='2d'){ mz=coverScale(); mx=(innerWidth-MAP_W*mz)/2; my=(innerHeight-MAP_H*mz)/2; applyMap(); }
   setTimeout(()=>$('loader').classList.add('hide'), 500);
 }
@@ -352,7 +353,7 @@ function openLocation(d){
     </a>`).join('');
   $('panel').classList.add('open'); $('scrim').classList.add('show');
   selectedLoc = d; refreshMarkers();
-  if (view === '2d') { centerOn(d.lat, d.lng, Math.max(coverScale(), 2.4)); }
+  if (view === '2d') { centerOn(d.lat, d.lng, coverScale()*2.5); }
   else if (world) { world.controls().autoRotate=false; world.pointOfView({ lat:d.lat, lng:d.lng, altitude:1.4 }, 900); }
 }
 function closePanel(){ $('panel').classList.remove('open'); $('scrim').classList.remove('show');
@@ -367,7 +368,7 @@ search.addEventListener('input', e=>{
   clearBtn.style.display = e.target.value ? 'flex' : 'none';
   const hit = findHit(e.target.value);
   if(!hit) return;
-  if(view==='2d') centerOn(hit.lat, hit.lng, Math.max(coverScale(), 2.4));
+  if(view==='2d') centerOn(hit.lat, hit.lng, coverScale()*2.5);
   else if(world) world.pointOfView({lat:hit.lat,lng:hit.lng,altitude:1.6}, 900);
 });
 search.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const h=findHit(e.target.value); if(h) openLocation(h); }});
@@ -396,9 +397,10 @@ st.textContent=`.g-tip{background:rgba(255,255,255,.7);-webkit-backdrop-filter:s
 document.head.appendChild(st);
 
 // ===================== 2D flat-map view (reuses the same texture + pins) =====================
-const MAP_W=2048, MAP_H=1024;
+const MAP_W=8192, MAP_H=4096, MAXZOOM=6;   // hi-res map (lazy-loaded) so zoom stays crisp
 let view='3d', pins2dBuilt=false, mz=1, mx=0, my=0;
 const mapEl=$('map'), layer=$('mapLayer'), segInd=$('segInd');
+const clampZoom = z => Math.min(coverScale()*MAXZOOM, Math.max(coverScale(), z));
 // glide the Liquid Glass selector under the active segment
 function moveInd(btn){ if(!btn) return; segInd.style.transform=`translateX(${btn.offsetLeft}px)`; segInd.style.width=btn.offsetWidth+'px'; }
 const ll2xy=(lat,lng)=>[ (lng+180)/360*MAP_W, (90-lat)/180*MAP_H ];
@@ -411,7 +413,7 @@ function clampPan(){
 function applyMap(){ clampPan(); layer.style.transform=`translate(${mx}px,${my}px) scale(${mz})`;
   layer.style.setProperty('--inv', 1/mz); }   // keep pins a constant screen size at any zoom
 function centerOn(lat,lng,z){
-  mz = Math.min(8, z||coverScale());
+  mz = clampZoom(z||coverScale());
   const [x,y]=ll2xy(lat,lng);
   mx = innerWidth/2 - x*mz; my = innerHeight/2 - y*mz; applyMap();
 }
@@ -458,7 +460,7 @@ $('seg3d').addEventListener('click', ()=>setView('3d'));
     if(pts.size===1 && single){ mx+=e.clientX-single.x; my+=e.clientY-single.y; single={x:e.clientX,y:e.clientY}; applyMap(); }
     else if(pts.size>=2){ const [a,b]=[...pts.values()], d=Math.hypot(a.x-b.x,a.y-b.y);
       const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2, r=mapEl.getBoundingClientRect(), ox=cx-r.left, oy=cy-r.top;
-      if(pd){ const nz=Math.min(8,Math.max(coverScale(), mz*d/pd)); mx=ox-(ox-mx)*(nz/mz); my=oy-(oy-my)*(nz/mz); mz=nz; applyMap(); }
+      if(pd){ const nz=clampZoom(mz*d/pd); mx=ox-(ox-mx)*(nz/mz); my=oy-(oy-my)*(nz/mz); mz=nz; applyMap(); }
       pd=d; }
   });
   const up=e=>{ pts.delete(e.pointerId); if(pts.size<2) pd=0;
@@ -466,7 +468,7 @@ $('seg3d').addEventListener('click', ()=>setView('3d'));
     else { const p=[...pts.values()][0]; single={x:p.x,y:p.y}; } };
   addEventListener('pointerup', up); addEventListener('pointercancel', up);
   mapEl.addEventListener('wheel', e=>{ e.preventDefault();
-    const nz=Math.min(8, Math.max(coverScale(), mz*Math.exp(-e.deltaY*0.0015)));
+    const nz=clampZoom(mz*Math.exp(-e.deltaY*0.0015));
     const r=mapEl.getBoundingClientRect(), ox=e.clientX-r.left, oy=e.clientY-r.top;
     mx=ox-(ox-mx)*(nz/mz); my=oy-(oy-my)*(nz/mz); mz=nz; applyMap();
   }, {passive:false});
