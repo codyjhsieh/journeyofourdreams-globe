@@ -120,6 +120,10 @@
   @media(hover:hover){.pin2d:hover::after{transform:translate(-50%,-50%) scale(1.28)}}
   .pin2d:active::after{transform:translate(-50%,-50%) scale(.82)}
   .pin2d:hover{z-index:6}
+  /* selected 2D dot: recolor (distinct magenta) + emphasize */
+  .pin2d.sel{z-index:7}
+  .pin2d.sel::after{background:#ff2d92;transform:translate(-50%,-50%) scale(1.45);
+    box-shadow:0 0 0 4px rgba(255,45,146,.22),0 2px 9px rgba(40,60,90,.5)}
   /* 3D globe: the visible pins are GPU-rendered (the look you liked); these are invisible,
      oversized tap targets laid over each pin so they're easy to hit on touch. */
   .ghit{width:30px;height:30px;cursor:pointer;pointer-events:auto;-webkit-user-select:none;user-select:none}
@@ -235,6 +239,16 @@ const colorForYear = y => YEAR_COLORS[y] || '#0a84ff';
 const GLOBE_TEXTURE = 'data/globe-texture.png';
 
 let world, LOCATIONS = [];
+// selected-marker state (distinct magenta, not in the year palette)
+const SELECTED = '#ff2d92';
+let selectedLoc = null;
+const pointColorFn  = d => d===selectedLoc ? SELECTED : colorForYear(d.year);
+const pointRadiusFn = d => (d===selectedLoc ? 0.42 : 0.18) + Math.min(d.posts.length,12)*0.03;
+function refreshMarkers(){
+  if(world) world.pointColor(pointColorFn).pointRadius(pointRadiusFn);   // 3D pins re-render
+  document.querySelectorAll('.pin2d.sel').forEach(e=>e.classList.remove('sel'));  // 2D dots
+  if(selectedLoc && selectedLoc._el) selectedLoc._el.classList.add('sel');
+}
 const $ = id => document.getElementById(id);
 const setMsg = m => { const e=$('lmsg'); if(e) e.textContent=m; };
 
@@ -261,9 +275,9 @@ async function boot(){
     // the 3D pin markers (the look you liked)
     .pointsData(LOCATIONS)
     .pointLat('lat').pointLng('lng')
-    .pointColor(d => colorForYear(d.year))
+    .pointColor(pointColorFn)
     .pointAltitude(d => 0.02 + Math.min(d.posts.length,12)*0.006)
-    .pointRadius(d => 0.18 + Math.min(d.posts.length,12)*0.03)
+    .pointRadius(pointRadiusFn)
     .pointLabel(d => `<div class="g-tip"><b>${d.name}</b><br><span>${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}</span></div>`)
     .onPointClick(openLocation)
     .pointsMerge(false).pointsTransitionDuration(0)
@@ -337,10 +351,12 @@ function openLocation(d){
       <div><div class="t">${esc(p.title)}</div><div class="d">${p.date}</div></div>
     </a>`).join('');
   $('panel').classList.add('open'); $('scrim').classList.add('show');
+  selectedLoc = d; refreshMarkers();
   if (view === '2d') { centerOn(d.lat, d.lng, Math.max(coverScale(), 2.4)); }
   else if (world) { world.controls().autoRotate=false; world.pointOfView({ lat:d.lat, lng:d.lng, altitude:1.4 }, 900); }
 }
-function closePanel(){ $('panel').classList.remove('open'); $('scrim').classList.remove('show'); }
+function closePanel(){ $('panel').classList.remove('open'); $('scrim').classList.remove('show');
+  selectedLoc=null; refreshMarkers(); }
 const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // search
@@ -411,6 +427,7 @@ function buildPins2d(){
     b.style.setProperty('--sz', sz+'px');
     b.title=`${d.name} — ${d.country} · ${d.posts.length} post${d.posts.length>1?'s':''}`;
     b.addEventListener('click', ev=>{ ev.stopPropagation(); openLocation(d); });
+    d._el = b;   // ref so selection can recolor this dot
     frag.appendChild(b);
   });
   layer.appendChild(frag);
