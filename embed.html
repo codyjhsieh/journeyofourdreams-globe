@@ -270,7 +270,7 @@ async function boot(){
       animateIn:false, controlType:'orbit'
     })(document.getElementById('globe'))
     .backgroundColor('rgba(0,0,0,0)')                     // show the page's light gradient
-    .showAtmosphere(true).atmosphereColor('#c7dcff').atmosphereAltitude(0.18)
+    .showAtmosphere(true).atmosphereColor('#dbe9ff').atmosphereAltitude(0.34)  // soft misty halo
     .globeImageUrl(GLOBE_TEXTURE)                         // pre-baked soft-pastel frosted map
     // the 3D pin markers (the look you liked)
     .pointsData(LOCATIONS)
@@ -293,21 +293,23 @@ async function boot(){
       return el;
     });
 
-  // ---- diffuse, matte material: no specular highlight, so the globe is lit purely by
-  //      diffuse + ambient light (the baked map lives in m.map; keep base color white) ----
+  // ---- misty material: diffuse/matte (no specular) + a soft self-emissive haze so the
+  //      globe glows softly like mist rather than reading as a solid lit surface ----
   const m = world.globeMaterial();
   m.color && m.color.set('#ffffff');
-  if (m.specular) m.specular.set('#000000');   // kill specular => purely diffuse/matte
+  if (m.specular) m.specular.set('#000000');   // no specular => matte
   m.shininess = 0;
   if ('reflectivity' in m) m.reflectivity = 0;
+  if (m.emissive) m.emissive.set('#bcd2ee');   // faint blue-white haze (keep countries visible)
+  if ('emissiveIntensity' in m) m.emissiveIntensity = 0.12;
   m.transparent = false; m.opacity = 1; m.needsUpdate = true;
 
   // ---- ambient, even lighting: lift the dark side so the globe reads frosted & soft ----
   try{
     world.lights().forEach(l=>{
       const t=(l.type||'');
-      if (t.includes('Ambient') || t.includes('Hemisphere')) { l.intensity = 3.3; l.color && l.color.set('#ffffff'); }
-      else if (t.includes('Directional')) { l.intensity = 0.22; l.color && l.color.set('#ffffff'); }
+      if (t.includes('Ambient') || t.includes('Hemisphere')) { l.intensity = 2.5; l.color && l.color.set('#ffffff'); }
+      else if (t.includes('Directional')) { l.intensity = 0.12; l.color && l.color.set('#ffffff'); }
     });
   }catch(e){ /* keep defaults */ }
 
